@@ -12,20 +12,21 @@ R_EARTH = 6378.137 * u.km
 ORB_I = Orbit.circular(Earth, alt=400*u.km) # LEO a 400km
 R_I = ORB_I.a
 
-def fitness_function(rho, r_f, rho_max):
+def fitness_function(rho, r_f, rho_max, max_days):
+    r_b = rho * r_f
+
     """Calcula Delta-V total. rho = rb / rf [cite: 151, 158]"""
     if rho < 1.0 or rho > rho_max:
         return 1e6, # Penalidade conforme seção 4.3 [cite: 161]
-    
-    r_b = rho * r_f
+
     try:
         # Utiliza a função bi-elíptica do Poliastro [cite: 147]
         man = Maneuver.bielliptic(ORB_I, r_b, r_f)
-        return man.get_total_cost().to(u.m/u.s).value,
+        return man.get_total_cost().to(u.m/u.s).value * man.get_total_time().to(u.day).value,
     except:
         return 1e6,
 
-def run_optimization(scenario_name, r_f, rho_max, initial_population=40, gen=30, tournsize=3, mprob=0.2):
+def run_optimization(scenario_name, r_f, rho_max, initial_population=40, gen=30, tournsize=3, mprob=0.2, max_days=100):
     print(f"\n--- {scenario_name} ---")
     
     # Reset do framework DEAP
@@ -41,7 +42,7 @@ def run_optimization(scenario_name, r_f, rho_max, initial_population=40, gen=30,
     toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_rho, n=1)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     
-    toolbox.register("evaluate", lambda ind: fitness_function(ind[0], r_f, rho_max))
+    toolbox.register("evaluate", lambda ind: fitness_function(ind[0], r_f, rho_max, max_days))
     toolbox.register("mate", tools.cxBlend, alpha=0.5) 
     toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=0.1, indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=tournsize)
@@ -64,11 +65,11 @@ def run_optimization(scenario_name, r_f, rho_max, initial_population=40, gen=30,
 
     print(f"Melhor rho encontrado: {best[0]:.4f}")
     print(f"Melhor rb encontrado: {r_b:.4f}")
-    print(f"Delta-V GA: {best.fitness.values[0]:.2f} m/s")
+    print(f"Delta-V GA: {ga_man.get_total_cost().to(u.m/u.s).value:.2f} m/s")
     print(f"Duração GA: {ga_man.get_total_time().to(u.day).value:.2f} dias")
     print(f"Delta-V Hohmann: {dv_hohmann:.2f} m/s")
     print(f"Duração Hohmann: {h_man.get_total_time().to(u.day).value:.2f} dias")
-    print(f"Diferença (Economia): {dv_hohmann - best.fitness.values[0]:.2f} m/s")
+    print(f"Diferença (Economia): {dv_hohmann - ga_man.get_total_cost().to(u.m/u.s).value:.2f} m/s")
     
     # Retorna apenas a lista de mínimos para plotagem
     return log.select("min")
@@ -79,8 +80,8 @@ gen = 30
 tournsize = 3
 
 # Cenário 1: LEO para GEO [cite: 179]
-log_geo = run_optimization("Cenário 1: LEO para GEO", 42164 * u.km, 40.0,
-                           initial_population=ini_pop, gen=gen, tournsize=tournsize)
+#log_geo = run_optimization("Cenário 1: LEO para GEO", 42164 * u.km, 40.0,
+#                           initial_population=ini_pop, gen=gen, tournsize=tournsize)
 
 # Cenário 2: LEO para Órbita Distante (10x R_I no seu código)
 r_f_far = 20 * R_I
@@ -100,13 +101,13 @@ plt.figure(figsize=(10, 6))
 # Plotar a evolução do GA (Curvas de Convergência)
 # Adicionamos uma sequência de 0 a gen para o eixo X explicitamente
 generations = range(len(log_far))
-plt.plot(generations, log_geo, label="GA - Cenário 1 (GEO)", color='blue', marker='o', markersize=3)
-#plt.plot(generations, log_far, label="GA - Cenário 2 (Distante)", color='green', marker='x', markersize=3)
+#plt.plot(generations, log_geo, label="GA - Cenário 1 (GEO)", color='blue', marker='o', markersize=3)
+plt.plot(generations, log_far, label="GA - Cenário 2 (Distante)", color='green', marker='x', markersize=3)
 
 # Plotar as referências de Hohmann (Linhas Horizontais)
 # axhline desenha uma linha em todo o eixo X na altura Y especificada
 #plt.axhline(y=dv_hohmann1, color='blue', linestyle='--', alpha=0.6, label=f"Ref. Hohmann GEO ({dv_hohmann1:.1f} m/s)")
-#plt.axhline(y=dv_hohmann2, color='green', linestyle='--', alpha=0.6, label=f"Ref. Hohmann Distante ({dv_hohmann2:.1f} m/s)")
+plt.axhline(y=dv_hohmann2, color='green', linestyle='--', alpha=0.6, label=f"Ref. Hohmann Distante ({dv_hohmann2:.1f} m/s)")
 
 plt.xlabel("Geração")
 plt.ylabel("Delta-V Mínimo (m/s)")
