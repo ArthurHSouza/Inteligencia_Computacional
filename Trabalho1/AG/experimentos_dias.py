@@ -66,6 +66,7 @@ gen = 30
 tournsize = 3
 mprob = 0.2
 r_f_far = 20 * R_I
+print(r_f_far)
 
 medias_geo_rb = numpy.array([])
 medias_geo_deltav = numpy.array([])

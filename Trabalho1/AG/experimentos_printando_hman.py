@@ -75,7 +75,7 @@ def run_optimization(scenario_name, r_f, rho_max, initial_population=40, gen=30,
 
 # --- EXECUÇÃO ---
 ini_pop = 40
-gen = 30
+gen = 70
 tournsize = 3
 
 # Cenário 1: LEO para GEO [cite: 179]
