@@ -35,7 +35,7 @@ def get_local_best(personal_best_pos, personal_best_cost, neighborhood_size):
     return local_best_pos
 
 def mutate(velocity):
-    if np.random.random() < 0.6:
+    if np.random.random() < 0.1:
         return velocity * (np.random.random() + 0.5)
     else:
         return velocity
@@ -90,8 +90,8 @@ def pso_local(
 
         # Update global best (tracking only)
         best_idx = np.argmin(costs)
-        global_best_pos = personal_best_pos[best_idx]
-        global_best_cost = personal_best_cost[best_idx]
+        global_best_pos = positions[best_idx]
+        global_best_cost = np.min(costs)
 
         history.append(global_best_cost)
 
@@ -185,12 +185,12 @@ def pso(
 
 # --- Run ---
 if __name__ == "__main__":
-    #r_f_loc = R_F
-    r_f_loc = R_F_FAR
+    r_f_loc = R_F
+    #r_f_loc = R_F_FAR
 
     best_rho, best_cost, history = pso_local(
         r_f=r_f_loc,
-        rho_max=1000,
+        rho_max=40,
         n_particles=30,
         n_iterations=70,
         neighborhood_size=2,   # each particle sees 5 neighbours total (itself ± 2)
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     plt.figure(figsize=(10, 6))
 
     generations = range(len(history))
-    #plt.plot(generations, history, label="GA - Cenário 1 (GEO)", color='blue', marker='o', markersize=3)
-    plt.plot(generations, history, label="GA - Cenário 2 (Distante)", color='green', marker='x', markersize=3)
+    plt.plot(generations, history, label="GA - Cenário 1 (GEO)", color='blue', marker='o', markersize=3)
+    #plt.plot(generations, history, label="GA - Cenário 2 (Distante)", color='green', marker='x', markersize=3)
 
 
     #plt.axhline(y=dv_hohmann1, color='blue', linestyle='--', alpha=0.6, label=f"Ref. Hohmann GEO ({dv_hohmann1:.1f} m/s)")
@@ -228,4 +228,4 @@ if __name__ == "__main__":
     # Opcional: Ajustar limites para ver melhor a convergência se os valores forem muito distantes
     # plt.ylim(min(log_far + log_geo) - 100, max(log_far + log_geo) + 100)
 
-    #plt.show()
+    plt.show()
